@@ -17,3 +17,4 @@ jobs:
       uses: astronomer/deploy-action@v0.10.0
       with:
         deployment-id: ${{ vars.DEPLOYMENT_ID }}
+        description: "${{ github.actor }} - $(git log -1 --pretty=%B)"
