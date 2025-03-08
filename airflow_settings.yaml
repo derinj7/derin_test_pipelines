@@ -1,0 +1,45 @@
+# airflow.yaml
+connections:
+  - conn_id: my_snowflake_conn
+    conn_type: snowflake
+    conn_host: 
+    conn_login: LIVEEASYPAL
+    conn_password: Light123
+    conn_schema: RETAIL
+    conn_port: 
+    conn_extra:
+      account: lntfalk-vr11992
+      warehouse: COMPUTE_WH
+      database: SALES_ANALYTICS
+      role: ACCOUNTADMIN
+      private_key_content: |
+        -----BEGIN ENCRYPTED PRIVATE KEY-----
+        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
+        -----END ENCRYPTED PRIVATE KEY-----
