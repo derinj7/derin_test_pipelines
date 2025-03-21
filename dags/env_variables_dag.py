@@ -1,9 +1,10 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.models import Variable
+from airflow.models import Variable, Connection
 from datetime import datetime, timedelta
 import os
 import logging
+import json
 
 default_args = {
     'owner': 'airflow',
@@ -20,14 +21,14 @@ def display_variables(**kwargs):
     """
     logger = logging.getLogger(__name__)
     
-    # Variables to fetch (without the AIRFLOW_VAR_ prefix as Airflow strips it)
+    # Variables to fetch - using lowercase as per the convention
     variable_keys = [
-        'ENVIRONMENT',
-        'API_KEY',
-        'DATABASE_URL',
-        'DEPLOYMENT_DATE',
-        'DEPLOYED_BY',
-        'COMMIT_SHA'
+        'environment',
+        'api_key',
+        'database_url',
+        'deployment_date',
+        'deployed_by',
+        'commit_sha'
     ]
     
     logger.info("=== Environment Variables from CI/CD ===")
@@ -42,7 +43,7 @@ def display_variables(**kwargs):
                 continue
                 
             # Mask sensitive information
-            if key in ['API_KEY', 'DATABASE_URL']:
+            if 'key' in key.lower() or 'url' in key.lower() or 'password' in key.lower():
                 if value and len(value) > 8:
                     masked_value = value[:4] + '*' * (len(value) - 8) + value[-4:]
                 else:
@@ -54,25 +55,14 @@ def display_variables(**kwargs):
         except Exception as e:
             logger.error(f"Error retrieving variable {key}: {str(e)}")
     
-    # List all available variables using session query instead of get_all()
-    logger.info("=== All available Airflow variables ===")
-    try:
-        from airflow.settings import Session
-        from airflow.models import Variable as VariableModel
-        
-        session = Session()
-        all_variables = session.query(VariableModel).all()
-        session.close()
-        
-        if not all_variables:
-            logger.info("No variables found in the Airflow database")
-        
-        for var in all_variables:
-            var_name = var.key
-            var_val = var.val
-            
+    # Attempt to load variables directly from environment
+    logger.info("=== Environment variables from os.environ ===")
+    airflow_vars = {k[12:].lower(): v for k, v in os.environ.items() if k.startswith('AIRFLOW_VAR_')}
+    
+    if airflow_vars:
+        for var_name, var_val in airflow_vars.items():
             # Mask sensitive values
-            if any(sensitive in var_name.upper() for sensitive in ['API', 'KEY', 'SECRET', 'PASSWORD', 'URL', 'TOKEN']):
+            if any(sensitive in var_name.lower() for sensitive in ['api', 'key', 'secret', 'password', 'url', 'token']):
                 if var_val and len(var_val) > 8:
                     masked = var_val[:4] + '*' * (len(var_val) - 8) + var_val[-4:]
                 else:
@@ -80,24 +70,50 @@ def display_variables(**kwargs):
                 logger.info(f"{var_name}: {masked}")
             else:
                 logger.info(f"{var_name}: {var_val}")
-    except Exception as e:
-        logger.error(f"Error listing all variables: {str(e)}")
-        
-        # Fallback to listing variables from os.environ
-        logger.info("=== Environment variables from os.environ ===")
-        for env_var, env_val in os.environ.items():
-            if env_var.startswith('AIRFLOW_VAR_'):
-                var_name = env_var[12:]  # Remove AIRFLOW_VAR_ prefix
+    else:
+        logger.info("No AIRFLOW_VAR_ environment variables found")
+    
+    # Try to find and load variables from files
+    logger.info("=== Checking for variables file ===")
+    var_file_paths = [
+        '/usr/local/airflow/include/variables.json',
+        '/opt/airflow/include/variables.json',
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'include', 'variables.json')
+    ]
+    
+    for path in var_file_paths:
+        if os.path.exists(path):
+            logger.info(f"Found variables file at: {path}")
+            try:
+                with open(path, 'r') as f:
+                    variables_data = json.load(f)
+                logger.info(f"Successfully loaded {len(variables_data)} variables from file")
+                logger.info(f"Variables from file: {', '.join(variables_data.keys())}")
                 
-                # Mask sensitive values
-                if any(sensitive in var_name.upper() for sensitive in ['API', 'KEY', 'SECRET', 'PASSWORD', 'URL', 'TOKEN']):
-                    if env_val and len(env_val) > 8:
-                        masked = env_val[:4] + '*' * (len(env_val) - 8) + env_val[-4:]
-                    else:
-                        masked = '*' * len(env_val) if env_val else 'None'
-                    logger.info(f"{var_name}: {masked}")
-                else:
-                    logger.info(f"{var_name}: {env_val}")
+                # Try to import the variables
+                for var_name, var_value in variables_data.items():
+                    try:
+                        Variable.set(var_name, var_value)
+                        logger.info(f"Set variable: {var_name}")
+                    except Exception as e:
+                        logger.error(f"Failed to set variable {var_name}: {str(e)}")
+            except Exception as e:
+                logger.error(f"Error reading variables file: {str(e)}")
+        else:
+            logger.info(f"Variables file not found at: {path}")
+    
+    # Check for connections
+    logger.info("=== Available Connections ===")
+    try:
+        from airflow.hooks.base import BaseHook
+        connections = BaseHook.get_connections()
+        if connections:
+            for conn in connections:
+                logger.info(f"Connection ID: {conn.conn_id}, Type: {conn.conn_type}, Host: {conn.host}")
+        else:
+            logger.info("No connections found")
+    except Exception as e:
+        logger.error(f"Error listing connections: {str(e)}")
     
     return "Variables displayed in logs"
 
