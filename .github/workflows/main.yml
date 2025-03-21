@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  ## Sets Deployment API credentials as environment variables so they can be used in the workflow
+  ## Sets Deployment API credentials as environment variables
   ASTRO_API_TOKEN: ${{ secrets.ASTRO_API_TOKEN }}
 
 jobs:
@@ -16,19 +16,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Create .env file with Airflow variables
+    - name: Create Airflow variables file
       run: |
-        # Create .env file in the root directory
-        echo "# Airflow Variables - Created by CI/CD" > .env
-        echo "AIRFLOW_VAR_environment=${{ vars.AIRFLOW_ENVIRONMENT || 'production' }}" >> .env
-        echo "AIRFLOW_VAR_api_key=${{ secrets.AIRFLOW_API_KEY || 'demo-api-key' }}" >> .env
-        echo "AIRFLOW_VAR_database_url=${{ secrets.DATABASE_URL || 'demo-db-url' }}" >> .env
-        echo "AIRFLOW_VAR_deployment_date=$(date -u +'%Y-%m-%d_%H:%M:%S')" >> .env
-        echo "AIRFLOW_VAR_deployed_by=${{ github.actor }}" >> .env
-        echo "AIRFLOW_VAR_commit_sha=${{ github.sha }}" >> .env
-        
-        # Create a JSON variables file that can be imported directly
+        # Create the include directory for variables
         mkdir -p include
+        
+        # Create a JSON variables file for Airflow
         cat > include/variables.json << EOF
         {
           "environment": "${{ vars.AIRFLOW_ENVIRONMENT || 'production' }}",
@@ -40,38 +33,17 @@ jobs:
         }
         EOF
         
-        # Also create an Airflow connections file
-        cat > include/connections.json << EOF
-        {
-          "my_connection": {
-            "conn_type": "http",
-            "description": "Example connection created by CI/CD",
-            "host": "example.com",
-            "login": "user",
-            "password": "${{ secrets.CONN_PASSWORD || 'demo-password' }}",
-            "port": 443,
-            "extra": {
-              "timeout": 10,
-              "ssl": true
-            }
-          }
-        }
-        EOF
-        
-        # Create a script to load variables at startup
+        # Create a simple loading script
         mkdir -p include/startup
         cat > include/startup/load_variables.sh << EOF
         #!/bin/bash
         echo "Loading Airflow variables from JSON file..."
         airflow variables import /usr/local/airflow/include/variables.json
-        echo "Loading Airflow connections from JSON file..."
-        airflow connections import /usr/local/airflow/include/connections.json
         EOF
         
-        # Make the startup script executable
         chmod +x include/startup/load_variables.sh
         
-        echo "Generated .env, variables.json, connections.json, and startup script"
+        echo "Created variables.json and startup script"
 
     - name: Deploy to Astro
       uses: astronomer/deploy-action@v0.10.0
