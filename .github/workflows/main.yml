@@ -15,35 +15,35 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
-
-    - name: Create Airflow variables file
+      
+    - name: Install Astro CLI
       run: |
-        # Create the include directory for variables
-        mkdir -p include
+        curl -sSL https://install.astronomer.io | sudo bash -s
+        echo "Astro CLI installed successfully"
+        astro version
+
+    - name: Create Airflow variables using Astro CLI
+      run: |
+        echo "Creating Airflow variables directly in the deployment using Astro CLI..."
         
-        # Create a JSON variables file for Airflow
-        cat > include/variables.json << EOF
-        {
-          "environment": "${{ vars.AIRFLOW_ENVIRONMENT || 'production' }}",
-          "api_key": "${{ secrets.AIRFLOW_API_KEY || 'demo-api-key' }}",
-          "database_url": "${{ secrets.DATABASE_URL || 'demo-db-url' }}",
-          "deployment_date": "$(date -u +'%Y-%m-%d_%H:%M:%S')",
-          "deployed_by": "${{ github.actor }}",
-          "commit_sha": "${{ github.sha }}"
-        }
-        EOF
+        # Set environment variables for use in commands
+        DEPLOYMENT_ID="${{ vars.DEPLOYMENT_ID }}"
+        ENVIRONMENT="${{ vars.AIRFLOW_ENVIRONMENT || 'production' }}"
+        API_KEY="${{ secrets.AIRFLOW_API_KEY || 'demo-api-key' }}"
+        DATABASE_URL="${{ secrets.DATABASE_URL || 'demo-db-url' }}"
+        DEPLOYMENT_DATE="$(date -u +'%Y-%m-%d_%H:%M:%S')"
+        DEPLOYED_BY="${{ github.actor }}"
+        COMMIT_SHA="${{ github.sha }}"
         
-        # Create a simple loading script
-        mkdir -p include/startup
-        cat > include/startup/load_variables.sh << EOF
-        #!/bin/bash
-        echo "Loading Airflow variables from JSON file..."
-        airflow variables import /usr/local/airflow/include/variables.json
-        EOF
+        # Create variables using Astro CLI
+        astro deployment airflow-variable create --deployment-id "$DEPLOYMENT_ID" --key environment --value "$ENVIRONMENT"
+        astro deployment airflow-variable create --deployment-id "$DEPLOYMENT_ID" --key api_key --value "$API_KEY"
+        astro deployment airflow-variable create --deployment-id "$DEPLOYMENT_ID" --key database_url --value "$DATABASE_URL"
+        astro deployment airflow-variable create --deployment-id "$DEPLOYMENT_ID" --key deployment_date --value "$DEPLOYMENT_DATE"
+        astro deployment airflow-variable create --deployment-id "$DEPLOYMENT_ID" --key deployed_by --value "$DEPLOYED_BY"
+        astro deployment airflow-variable create --deployment-id "$DEPLOYMENT_ID" --key commit_sha --value "$COMMIT_SHA"
         
-        chmod +x include/startup/load_variables.sh
-        
-        echo "Created variables.json and startup script"
+        echo "Airflow variables created successfully using Astro CLI"
 
     - name: Deploy to Astro
       uses: astronomer/deploy-action@v0.10.0
