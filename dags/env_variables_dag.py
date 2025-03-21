@@ -16,7 +16,7 @@ default_args = {
 
 def display_variables(**kwargs):
     """
-    Function to display the Airflow variables set from the .env file
+    Function to display the Airflow variables set from the .env file 
     """
     logger = logging.getLogger(__name__)
     

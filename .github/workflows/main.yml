@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  ## Sets Deployment API credentials as environment variables
+  ## Sets Deployment API credentials as environment variables so they can be used in the workflow
   ASTRO_API_TOKEN: ${{ secrets.ASTRO_API_TOKEN }}
 
 jobs:
