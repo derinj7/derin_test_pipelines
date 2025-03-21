@@ -54,19 +54,50 @@ def display_variables(**kwargs):
         except Exception as e:
             logger.error(f"Error retrieving variable {key}: {str(e)}")
     
-    # Let's also print all available variables for debugging
+    # List all available variables using session query instead of get_all()
     logger.info("=== All available Airflow variables ===")
-    all_vars = Variable.get_all()
-    for var_name, var_val in all_vars.items():
-        # Mask sensitive values
-        if any(sensitive in var_name.upper() for sensitive in ['API', 'KEY', 'SECRET', 'PASSWORD', 'URL', 'TOKEN']):
-            if var_val and len(var_val) > 8:
-                masked = var_val[:4] + '*' * (len(var_val) - 8) + var_val[-4:]
+    try:
+        from airflow.settings import Session
+        from airflow.models import Variable as VariableModel
+        
+        session = Session()
+        all_variables = session.query(VariableModel).all()
+        session.close()
+        
+        if not all_variables:
+            logger.info("No variables found in the Airflow database")
+        
+        for var in all_variables:
+            var_name = var.key
+            var_val = var.val
+            
+            # Mask sensitive values
+            if any(sensitive in var_name.upper() for sensitive in ['API', 'KEY', 'SECRET', 'PASSWORD', 'URL', 'TOKEN']):
+                if var_val and len(var_val) > 8:
+                    masked = var_val[:4] + '*' * (len(var_val) - 8) + var_val[-4:]
+                else:
+                    masked = '*' * len(var_val) if var_val else 'None'
+                logger.info(f"{var_name}: {masked}")
             else:
-                masked = '*' * len(var_val) if var_val else 'None'
-            logger.info(f"{var_name}: {masked}")
-        else:
-            logger.info(f"{var_name}: {var_val}")
+                logger.info(f"{var_name}: {var_val}")
+    except Exception as e:
+        logger.error(f"Error listing all variables: {str(e)}")
+        
+        # Fallback to listing variables from os.environ
+        logger.info("=== Environment variables from os.environ ===")
+        for env_var, env_val in os.environ.items():
+            if env_var.startswith('AIRFLOW_VAR_'):
+                var_name = env_var[12:]  # Remove AIRFLOW_VAR_ prefix
+                
+                # Mask sensitive values
+                if any(sensitive in var_name.upper() for sensitive in ['API', 'KEY', 'SECRET', 'PASSWORD', 'URL', 'TOKEN']):
+                    if env_val and len(env_val) > 8:
+                        masked = env_val[:4] + '*' * (len(env_val) - 8) + env_val[-4:]
+                    else:
+                        masked = '*' * len(env_val) if env_val else 'None'
+                    logger.info(f"{var_name}: {masked}")
+                else:
+                    logger.info(f"{var_name}: {env_val}")
     
     return "Variables displayed in logs"
 
