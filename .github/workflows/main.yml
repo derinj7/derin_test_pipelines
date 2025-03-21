@@ -13,6 +13,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Create .env file with Airflow variables
+      run: |
+        echo "# Airflow Variables - Created by CI/CD" > .env
+        echo "AIRFLOW_VAR_ENVIRONMENT=${{ vars.AIRFLOW_ENVIRONMENT }}" >> .env
+        echo "AIRFLOW_VAR_API_KEY=${{ secrets.AIRFLOW_API_KEY }}" >> .env
+        echo "AIRFLOW_VAR_DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+        echo "AIRFLOW_VAR_DEPLOYMENT_DATE=$(date -u +'%Y-%m-%d_%H:%M:%S')" >> .env
+        echo "AIRFLOW_VAR_DEPLOYED_BY=${{ github.actor }}" >> .env
+        echo "AIRFLOW_VAR_COMMIT_SHA=${{ github.sha }}" >> .env
+        echo ".env file created with the following variables:"
+        cat .env
+
     - name: Deploy to Astro
       uses: astronomer/deploy-action@v0.10.0
       with:
