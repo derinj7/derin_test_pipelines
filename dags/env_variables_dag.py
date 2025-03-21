@@ -74,6 +74,7 @@ def display_variables(**kwargs):
         logger.info("No AIRFLOW_VAR_ environment variables found")
     
     # Try to find and load variables from files
+    variables_loaded = False
     logger.info("=== Checking for variables file ===")
     var_file_paths = [
         '/usr/local/airflow/include/variables.json',
@@ -95,12 +96,38 @@ def display_variables(**kwargs):
                     try:
                         Variable.set(var_name, var_value)
                         logger.info(f"Set variable: {var_name}")
+                        variables_loaded = True
                     except Exception as e:
                         logger.error(f"Failed to set variable {var_name}: {str(e)}")
             except Exception as e:
                 logger.error(f"Error reading variables file: {str(e)}")
         else:
             logger.info(f"Variables file not found at: {path}")
+    
+    # If variables were loaded, display them again
+    if variables_loaded:
+        logger.info("=== Displaying newly set variables ===")
+        for key in variable_keys:
+            try:
+                # Get the variable that we just set
+                value = Variable.get(key, default_var=None)
+                
+                if value is None:
+                    logger.info(f"{key}: Still not found after import")
+                    continue
+                    
+                # Mask sensitive information
+                if 'key' in key.lower() or 'url' in key.lower() or 'password' in key.lower():
+                    if value and len(value) > 8:
+                        masked_value = value[:4] + '*' * (len(value) - 8) + value[-4:]
+                    else:
+                        masked_value = '*' * len(value) if value else 'None'
+                    logger.info(f"{key}: {masked_value}")
+                else:
+                    logger.info(f"{key}: {value}")
+                    
+            except Exception as e:
+                logger.error(f"Error retrieving variable {key} after import: {str(e)}")
     
     # Check for connections
     logger.info("=== Available Connections ===")
@@ -115,7 +142,21 @@ def display_variables(**kwargs):
     except Exception as e:
         logger.error(f"Error listing connections: {str(e)}")
     
-    return "Variables displayed in logs"
+    # Create a simple JSON summary of the variables for the task result
+    summary = {}
+    for key in variable_keys:
+        try:
+            value = Variable.get(key, default_var="Not found")
+            
+            # Don't include sensitive values in the summary
+            if 'key' in key.lower() or 'url' in key.lower() or 'password' in key.lower():
+                summary[key] = "******" if value != "Not found" else "Not found"
+            else:
+                summary[key] = value
+        except:
+            summary[key] = "Error retrieving"
+            
+    return f"Variables summary: {json.dumps(summary, indent=2)}"
 
 with DAG(
     'display_env_variables',
