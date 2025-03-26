@@ -21,6 +21,6 @@ with DAG(
     fetch_customers = SQLExecuteQueryOperator(
         task_id="fetch_customers",
         sql="SELECT * FROM sales_analytics.retail.customers;",
-        conn_id=SNOWFLAKE_CONN_ID,
+        conn_id="wrong_snowflake_connection",  # INTENTIONAL ERROR: Using incorrect connection ID to make test fail
         outlets=[customer_dataset],
     )
