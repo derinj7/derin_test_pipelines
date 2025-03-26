@@ -53,3 +53,4 @@ jobs:
       with:
         deployment-id: ${{ vars.DEPLOYMENT_ID }}
         description: "${{ github.actor }} - $(git log -1 --pretty=%B)"
+        pytest: true
