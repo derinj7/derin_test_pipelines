@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-from airflow.models import Variable
+import os
 
 default_args = {
     'owner': 'airflow',
@@ -22,6 +22,8 @@ dag = DAG(
     catchup=False,
     tags=['variables', 'jinja'],
 )
+
+env_var = os.getenv('DATABASE_USERR')
 
 # Create a BashOperator task that uses Jinja templating to fetch the variables
 fetch_variables_task = BashOperator(
@@ -44,6 +46,12 @@ fetch_variables_task = BashOperator(
     # psql -h {{ var.value.DATABASE_HOST }} -U {{ var.value.DATABASE_USER }} -d mydb
     ''',
     dag=dag,
+)
+
+fetch_env = BashOperator(
+    task_id = 'fetch_env',
+    bash_command = f'echo {env_var}',
+    dag = dag
 )
 
 
