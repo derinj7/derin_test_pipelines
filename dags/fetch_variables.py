@@ -23,8 +23,6 @@ dag = DAG(
     tags=['variables', 'jinja'],
 )
 
-env_var = os.getenv('DATABASE_USERR')
-
 # Create a BashOperator task that uses Jinja templating to fetch the variables
 fetch_variables_task = BashOperator(
     task_id='fetch_variables',
@@ -50,7 +48,7 @@ fetch_variables_task = BashOperator(
 
 fetch_env = BashOperator(
     task_id = 'fetch_env',
-    bash_command = f'echo {env_var}',
+    bash_command = 'echo "DATABASE_USER environment variable: {{ env().DATABASE_USERR }}"',
     dag = dag
 )
 
