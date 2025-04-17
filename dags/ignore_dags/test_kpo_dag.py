@@ -76,24 +76,38 @@ with DAG(
     )
     
     # New task with pod override to test larger resource allocation
-    # Using TensorFlow image which is larger but doesn't need to do heavy computation for testing
+    # Using a Python data science image which has more dependencies but is still reasonable for testing
     override_task = KubernetesPodOperator(
         namespace=namespace,
-        image="tensorflow/tensorflow:2.9.1",  # A larger image but still reasonable for testing
-        cmds=["python", "-c"],
+        image="python:3.9-slim",  # Using a basic Python image for reliability
+        cmds=["bash", "-c"],
         arguments=[
             """
-import tensorflow as tf
+# Install resource monitoring tools
+pip install --no-cache-dir numpy
+echo "Starting resource test with pod override..."
+python -c "
 import os
-import psutil
+import sys
+import platform
+import numpy as np
+
+# Create a larger array to use some memory
+large_array = np.ones((1000, 1000))
 
 # Print resource information
-print('TensorFlow version:', tf.__version__)
-print('Available devices:', tf.config.list_physical_devices())
+print('Python version:', sys.version)
+print('Platform info:', platform.platform())
 print('CPU count:', os.cpu_count())
-print('Memory info:', psutil.virtual_memory())
-print('Disk usage:', psutil.disk_usage('/'))
-print('Test complete!')
+print('Current working directory:', os.getcwd())
+print('Disk space:')
+os.system('df -h /')
+print('Memory info:')
+os.system('free -h')
+print('Test array shape:', large_array.shape)
+print('Test array memory usage (MB):', large_array.nbytes / (1024 * 1024))
+print('Pod override test complete!')
+"
             """
         ],
         labels={"app": "kpo-override-test"},
