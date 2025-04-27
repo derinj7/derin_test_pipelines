@@ -12,21 +12,20 @@ with DAG(
     schedule=None,
     catchup=False,
 ) as dag:
-
     # Task to query customer data
     fetch_customers = SQLExecuteQueryOperator(
         task_id="fetch_customers",
         sql="SELECT * FROM sales_analytics.retail.customers;",
         conn_id=SNOWFLAKE_CONN_ID,
     )
-    
+
     # Task to query product data
     fetch_products = SQLExecuteQueryOperator(
         task_id="fetch_products",
         sql="SELECT * FROM sales_analytics.retail.products;",
         conn_id=SNOWFLAKE_CONN_ID,
     )
-    
+
     # Task to get order summary
     order_summary = SQLExecuteQueryOperator(
         task_id="order_summary",
@@ -46,7 +45,7 @@ with DAG(
         """,
         conn_id=SNOWFLAKE_CONN_ID,
     )
-    
+
     # Task to analyze sales by category
     sales_by_category = SQLExecuteQueryOperator(
         task_id="sales_by_category",
@@ -64,6 +63,6 @@ with DAG(
         """,
         conn_id=SNOWFLAKE_CONN_ID,
     )
-    
+
     # Define task dependencies
     fetch_customers >> fetch_products >> order_summary >> sales_by_category

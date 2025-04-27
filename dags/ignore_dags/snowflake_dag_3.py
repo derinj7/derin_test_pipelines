@@ -7,8 +7,8 @@ from airflow.datasets import Dataset
 SNOWFLAKE_CONN_ID = "my_snowflake_conn"
 
 # Define datasets for data-aware scheduling
-product_dataset = Dataset('snowflake://sales_analytics.retail.products')
-order_summary_dataset = Dataset('snowflake://sales_analytics.retail.order_summary')
+product_dataset = Dataset("snowflake://sales_analytics.retail.products")
+order_summary_dataset = Dataset("snowflake://sales_analytics.retail.order_summary")
 
 with DAG(
     "snowflake_dag_3",
@@ -17,7 +17,6 @@ with DAG(
     schedule=[product_dataset],  # Run when product_dataset is updated
     catchup=False,
 ) as dag:
-
     # Task to get order summary
     order_summary = SQLExecuteQueryOperator(
         task_id="order_summary",

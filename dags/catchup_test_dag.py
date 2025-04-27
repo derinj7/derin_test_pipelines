@@ -9,16 +9,14 @@ with DAG(
     schedule="@daily",  # Run daily
     catchup=True,
 ) as dag:
-
     # Sample task
     sample_task_1 = EmptyOperator(
         task_id="fetch_customers",
     )
-    
+
     # Sample task
     sample_task_2 = EmptyOperator(
         task_id="sample_task_2",
     )
 
     sample_task_1 >> sample_task_2
-    

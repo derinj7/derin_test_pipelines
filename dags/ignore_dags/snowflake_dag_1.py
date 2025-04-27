@@ -7,7 +7,7 @@ from airflow.datasets import Dataset
 SNOWFLAKE_CONN_ID = "my_snowflake_conn"
 
 # Define dataset for data-aware scheduling
-customer_dataset = Dataset('snowflake://sales_analytics.retail.customers')
+customer_dataset = Dataset("snowflake://sales_analytics.retail.customers")
 
 with DAG(
     "snowflake_dag_1",
@@ -16,7 +16,6 @@ with DAG(
     schedule="0 18 * * *",  # Run daily at 6 PM
     catchup=False,
 ) as dag:
-
     # Task to query customer data
     fetch_customers = SQLExecuteQueryOperator(
         task_id="fetch_customers",
