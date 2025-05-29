@@ -3,12 +3,13 @@ from pendulum import datetime
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 
 # Updated connection ID to match what you'll define in Airflow
-SNOWFLAKE_CONN_ID = "my_snowflake_conn"
+SNOWFLAKE_CONN_ID = "snowflake_default"
 
 with DAG(
     "snowflake_sales_analytics",
     description="Fetch and analyze data from the sales_analytics database",
     start_date=datetime(2024, 1, 1),
+    tags=["simple_snowflake_batch"],
     schedule=None,
     catchup=False,
 ) as dag:

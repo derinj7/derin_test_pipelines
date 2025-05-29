@@ -14,12 +14,13 @@ with DAG(
     description="Fetch customer data from the sales_analytics database",
     start_date=datetime(2024, 1, 1),
     schedule="0 18 * * *",  # Run daily at 6 PM
+    tags=["simple_snowflake_batch"],
     catchup=False,
 ) as dag:
     # Task to query customer data
     fetch_customers = SQLExecuteQueryOperator(
         task_id="fetch_customers",
-        sql="SELECT * FROM sales_analytics.retail.customers;",
-        conn_id="wrong_snowflake_connection",  # INTENTIONAL ERROR: Using incorrect connection ID to make test fail
+        sql="SELECT * FROM CUSTOMERS;",
+        conn_id="snowflake_default",  # INTENTIONAL ERROR: Using incorrect connection ID to make test fail
         outlets=[customer_dataset],
     )
