@@ -17,3 +17,4 @@ jobs:
       uses: astronomer/deploy-action@v0.10.1
       with:
         deployment-id: ${{ vars.DEPLOYMENT_ID }}
+        force: true
