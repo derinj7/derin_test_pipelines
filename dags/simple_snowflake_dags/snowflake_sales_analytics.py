@@ -9,7 +9,6 @@ with DAG(
     "snowflake_sales_analytics",
     description="Fetch and analyze data from the sales_analytics database",
     start_date=datetime(2024, 1, 1),
-    tags=["simple_snowflake_batch"],
     schedule=None,
     catchup=False,
 ) as dag:

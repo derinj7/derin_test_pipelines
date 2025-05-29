@@ -14,7 +14,6 @@ with DAG(
     description="Analyze sales by category from the sales_analytics database",
     start_date=datetime(2024, 1, 1),
     schedule=[order_summary_dataset],  # Run when order_summary_dataset is updated
-    tags=["simple_snowflake_batch"],
     catchup=False,
 ) as dag:
     # Task to analyze sales by category
