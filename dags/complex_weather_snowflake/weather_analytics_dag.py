@@ -156,14 +156,14 @@ with DAG(
         task_id="create_weather_analytics_table",
         conn_id="snowflake_default",
         sql=CREATE_ANALYTICS_SQL,
-        outlets=[weather_analytics_dataset],
+        # Removed outlet from here
     )
 
     transform = SQLExecuteQueryOperator(
         task_id="weather_transformation",
         conn_id="snowflake_default",
         sql=TRANSFORMATION_SQL,
-        outlets=[weather_analytics_dataset],
+        # Removed outlet from here
     )
 
     heavy_compute = SQLExecuteQueryOperator(
@@ -176,6 +176,7 @@ with DAG(
         task_id="weather_summary_stats",
         conn_id="snowflake_default",
         sql=SUMMARY_SQL,
+        outlets=[weather_analytics_dataset],  # Only emit dataset at the end
     )
 
     create_table >> transform >> [heavy_compute, summary_stats]

@@ -157,17 +157,16 @@ with DAG(
         task_id="create_weather_table",
         conn_id="snowflake_default",
         sql=CREATE_TABLE_SQL,
-        outlets=[weather_raw_dataset],   # marks the Dataset as produced
+        # Removed outlet from here
     )
 
-    insert_weather = (
-        SQLExecuteQueryOperator.partial(
-            task_id="insert_weather_record",
-            conn_id="snowflake_default",
-            sql=INSERT_SQL,
-            outlets=[weather_raw_dataset],
-        )
-        .expand(parameters=weather_rows)        # dynamic-mapped tasks
+    # Single task to insert all weather records
+    insert_all_weather = SQLExecuteQueryOperator(
+        task_id="insert_all_weather_records",
+        conn_id="snowflake_default",
+        sql=[INSERT_SQL] * len(weather_rows),  # Execute INSERT for each city
+        parameters=weather_rows,  # Pass all parameters at once
+        outlets=[weather_raw_dataset],  # Only emit dataset once after all inserts
     )
 
-    create_table >> insert_weather
+    create_table >> insert_all_weather

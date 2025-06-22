@@ -11,6 +11,7 @@ from datetime import datetime
 from airflow import DAG
 from airflow.datasets import Dataset
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
+from airflow.operators.dummy import DummyOperator
 
 # ------------------------------------------------------------------ #
 # Dataset that the analytics DAG publishes                           #
@@ -191,6 +192,11 @@ with DAG(
         do_xcom_push=True,
     )
 
-    # Dependencies (optional – run all in parallel then summary)
+    # Add a final completion task (no outlet needed as this is the last DAG)
+    complete = DummyOperator(
+        task_id="reporting_complete"
+    )
+
+    # Dependencies
     [temp_ranking, extremes, climate_dist, wind_patterns,
-     variance_top5, comfort_top5] >> summary_stats
+     variance_top5, comfort_top5] >> summary_stats >> complete
