@@ -160,12 +160,23 @@ with DAG(
         # Removed outlet from here
     )
 
-    # Single task to insert all weather records
-    insert_all_weather = SQLExecuteQueryOperator(
+    # Create a PythonOperator to handle multiple inserts
+    from airflow.operators.python import PythonOperator
+    from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
+    
+    def insert_all_weather_data(**context):
+        """Insert all weather data in a single task"""
+        hook = SnowflakeHook(snowflake_conn_id="snowflake_default")
+        
+        # Execute INSERT for each city
+        for weather_data in weather_rows:
+            hook.run(sql=INSERT_SQL, parameters=weather_data)
+        
+        return f"Successfully inserted {len(weather_rows)} weather records"
+    
+    insert_all_weather = PythonOperator(
         task_id="insert_all_weather_records",
-        conn_id="snowflake_default",
-        sql=[INSERT_SQL] * len(weather_rows),  # Execute INSERT for each city
-        parameters=weather_rows,  # Pass all parameters at once
+        python_callable=insert_all_weather_data,
         outlets=[weather_raw_dataset],  # Only emit dataset once after all inserts
     )
 
