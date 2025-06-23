@@ -192,11 +192,8 @@ with DAG(
         do_xcom_push=True,
     )
 
-    # Add a final completion task (no outlet needed as this is the last DAG)
-    complete = DummyOperator(
-        task_id="reporting_complete"
-    )
+    
 
     # Dependencies
     [temp_ranking, extremes, climate_dist, wind_patterns,
-     variance_top5, comfort_top5] >> summary_stats >> complete
+     variance_top5, comfort_top5] >> summary_stats
