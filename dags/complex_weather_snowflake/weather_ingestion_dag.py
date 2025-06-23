@@ -148,7 +148,7 @@ FROM weather_staging ws, complex_calc cc;
 with DAG(
     dag_id="weather_ingestion_dag",
     start_date=datetime(2024, 1, 1),
-    schedule="@daily",
+    schedule="*/30 * * * *",
     catchup=False,
     tags=["weather", "snowflake"],
 ) as dag:
