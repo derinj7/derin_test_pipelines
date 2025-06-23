@@ -176,7 +176,54 @@ with DAG(
         task_id="weather_summary_stats",
         conn_id="snowflake_default",
         sql=SUMMARY_SQL,
-        outlets=[weather_analytics_dataset],  # Only emit dataset at the end
     )
 
-    create_table >> transform >> [heavy_compute, summary_stats]
+    # New task to insert into historical table
+    HISTORICAL_INSERT_SQL = """
+    INSERT INTO SAMPLE_DB.ANALYTICS.WEATHER_HISTORICAL (
+        analysis_date,
+        city,
+        country,
+        latitude,
+        longitude,
+        avg_temperature,
+        min_temperature,
+        max_temperature,
+        temperature_variance,
+        avg_windspeed,
+        max_windspeed,
+        comfort_score,
+        climate_zone,
+        record_count,
+        processing_timestamp,
+        dag_run_id
+    )
+    SELECT 
+        analysis_date,
+        city,
+        country,
+        latitude,
+        longitude,
+        avg_temperature,
+        min_temperature,
+        max_temperature,
+        temperature_variance,
+        avg_windspeed,
+        max_windspeed,
+        comfort_score,
+        climate_zone,
+        record_count,
+        processing_timestamp,
+        '{{ run_id }}' as dag_run_id
+    FROM SAMPLE_DB.ANALYTICS.WEATHER_ANALYTICS
+    WHERE analysis_date = CURRENT_DATE();
+    """
+
+    insert_historical = SQLExecuteQueryOperator(
+        task_id="insert_historical_data",
+        conn_id="snowflake_default",
+        sql=HISTORICAL_INSERT_SQL,
+        outlets=[weather_analytics_dataset],  # Emit dataset after historical insert
+    )
+
+    create_table >> transform >> [heavy_compute, summary_stats] >> insert_historical
